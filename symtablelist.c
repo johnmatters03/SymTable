@@ -32,7 +32,7 @@ void SymTable_free(SymTable_T oSymTable) {
 
     for (psCurrentNode = oSymTable->first; 
     psCurrentNode != NULL; 
-    psCurrentNode = psNextNode) 
+    psCurrentNode = psNextNode)
     {
       psNextNode = psCurrentNode->psNextNode;
       free(psCurrentNode);
@@ -48,11 +48,11 @@ size_t SymTable_getLength(SymTable_T oSymTable) {
     assert(oSymTable != NULL);
 
     i = 0;
-    psCurrentNode = oSymTable->first;
 
-    while (psCurrentNode != NULL) {
+    for (psCurrentNode = oSymTable->first; 
+    psCurrentNode != NULL; 
+    psCurrentNode = psCurrentNode->psNextNode) {
         i++;
-        psCurrentNode = psCurrentNode->psNextNode;
     }
 
     return i;
@@ -65,8 +65,9 @@ const void *pvValue) {
 
     assert(oSymTable != NULL);
 
-    psCurrentNode = oSymTable->first;
-    while(psCurrentNode != NULL) {
+    for (psCurrentNode = oSymTable->first; 
+    psCurrentNode != NULL; 
+    psCurrentNode = psCurrentNode->psNextNode) {
         if (!strcmp(psCurrentNode->pcKey, pcKey)) {
             return 0;
         }
@@ -91,9 +92,9 @@ const void *pvValue) {
 
     assert(oSymTable != NULL);
 
-    psCurrentNode = oSymTable->first;
-
-    while (psCurrentNode != NULL) {
+    for (psCurrentNode = oSymTable->first; 
+    psCurrentNode != NULL; 
+    psCurrentNode = psCurrentNode->psNextNode) {
         if (!strcmp(psCurrentNode->pcKey, pcKey)) {
             tempValue = psCurrentNode->pvValue;
             psCurrentNode->pvValue = pvValue;
@@ -109,9 +110,9 @@ int SymTable_contains(SymTable_T oSymTable, const char *pcKey) {
 
     assert(oSymTable != NULL);
 
-    psCurrentNode = oSymTable->first;
-
-    while (psCurrentNode != NULL) {
+    for (psCurrentNode = oSymTable->first; 
+    psCurrentNode != NULL; 
+    psCurrentNode = psCurrentNode->psNextNode) {
         if (!strcmp(psCurrentNode->pcKey, pcKey)) {
             return 1;
         }
@@ -125,9 +126,9 @@ void *SymTable_get(SymTable_T oSymTable, const char *pcKey) {
 
     assert(oSymTable != NULL);
 
-    psCurrentNode = oSymTable->first;
-
-    while (psCurrentNode != NULL) {
+    for (psCurrentNode = oSymTable->first; 
+    psCurrentNode != NULL; 
+    psCurrentNode = psCurrentNode->psNextNode) {
         if (!strcmp(psCurrentNode->pcKey, pcKey)) {
             return psCurrentNode->pvValue;
         }
@@ -153,9 +154,10 @@ void *SymTable_remove(SymTable_T oSymTable, const char *pcKey) {
     }
 
     psPrevious = psCurrentNode;
-    psCurrentNode = psCurrentNode->psNextNode;
 
-    while (psCurrentNode != NULL) {
+    for (psCurrentNode = psCurrentNode->psNextNode; 
+    psCurrentNode != NULL; 
+    psCurrentNode = psCurrentNode->psNextNode) {
         if (!strcmp(psCurrentNode->pcKey, pcKey)) {
             pvValue = psCurrentNode->pvValue;
             psPrevious->psNextNode = psCurrentNode->psNextNode;
@@ -170,5 +172,13 @@ void *SymTable_remove(SymTable_T oSymTable, const char *pcKey) {
 void SymTable_map(SymTable_T oSymTable,
     void (*pfApply)(const char *pcKey, void *pvValue, void *pvExtra),
     const void *pvExtra) {
-        struct STBinding psCurrentNode;
+        struct STBinding *psCurrentNode;
+
+        for (psCurrentNode = oSymTable->first; 
+        psCurrentNode != NULL; 
+        psCurrentNode = psCurrentNode->psNextNode) {
+            pfApply(psCurrentNode->pcKey, 
+            (void*)psCurrentNode->pvValue,
+            pvExtra);
+        }
     }
