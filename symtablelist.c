@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <stdlib.h>
+#include <string.h>
 #include "symtable.h"
 
 struct STBinding 
@@ -62,8 +63,12 @@ int SymTable_put(SymTable_T oSymTable, const char *pcKey,
 const void *pvValue) {
     struct STBinding *psNewNode;
     struct STBinding *psCurrentNode;
+    char* keyCopy;
 
     assert(oSymTable != NULL);
+
+    keyCopy = malloc(sizeof(char) * strlen(pcKey));
+    keyCopy = strcpy(keyCopy, pcKey);
 
     for (psCurrentNode = oSymTable->first; 
     psCurrentNode != NULL; 
@@ -76,8 +81,8 @@ const void *pvValue) {
     psNewNode = (struct STBinding*)malloc(sizeof(struct STBinding));
     if (psNewNode == NULL) return 0;
 
-    psNewNode->pcKey = pcKey;
-    psNewNode->pvValue = pvValue;
+    psNewNode->pcKey = keyCopy;
+    psNewNode->pvValue = (void*)pvValue;
     psNewNode->psNextNode = oSymTable->first;
 
     oSymTable->first = psNewNode;
@@ -97,7 +102,7 @@ const void *pvValue) {
     psCurrentNode = psCurrentNode->psNextNode) {
         if (!strcmp(psCurrentNode->pcKey, pcKey)) {
             tempValue = psCurrentNode->pvValue;
-            psCurrentNode->pvValue = pvValue;
+            psCurrentNode->pvValue = (void*)pvValue;
             return tempValue;
         }
     }
@@ -145,10 +150,11 @@ void *SymTable_remove(SymTable_T oSymTable, const char *pcKey) {
     assert(oSymTable != NULL);
 
     psCurrentNode = oSymTable->first;
+    if (psCurrentNode == NULL) return NULL;
 
     if (!strcmp(psCurrentNode->pcKey, pcKey)) {
         pvValue = psCurrentNode->pvValue;
-        oSymTable->first = psCurrentNode->psNextNode;
+        oSymTable->first = oSymTable->first->psNextNode;
         free(psCurrentNode);
         return pvValue;
     }
@@ -164,6 +170,8 @@ void *SymTable_remove(SymTable_T oSymTable, const char *pcKey) {
             free(psCurrentNode);
             return pvValue;
         }
+        
+        psPrevious = psCurrentNode;
     }
 
     return NULL;
@@ -179,6 +187,6 @@ void SymTable_map(SymTable_T oSymTable,
         psCurrentNode = psCurrentNode->psNextNode) {
             pfApply(psCurrentNode->pcKey, 
             (void*)psCurrentNode->pvValue,
-            pvExtra);
+            (void*)pvExtra);
         }
     }
