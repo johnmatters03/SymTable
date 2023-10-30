@@ -96,7 +96,6 @@ static void testBasics(void)
    char acCenterField[] = "Center Field";
    char acFirstBase[] = "First Base";
    char acRightField[] = "Right Field";
-
    char acBrown[] = "Brown";
    
    char *pcValue;

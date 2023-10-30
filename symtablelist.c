@@ -56,7 +56,7 @@ const void *pvValue) {
 
     assert(oSymTable != NULL);
 
-    keyCopy = malloc(sizeof(char) * strlen(pcKey));
+    keyCopy = malloc(sizeof(char) * strlen(pcKey) + 1);
     keyCopy = strcpy(keyCopy, pcKey);
 
     for (psCurrentNode = oSymTable->first; 
