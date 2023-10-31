@@ -1,18 +1,33 @@
+/*--------------------------------------------------------------------*/
+/* symtablelist.c                                                     */
+/* Author: John Matters                                               */
+/*--------------------------------------------------------------------*/
+
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
 #include "symtable.h"
 
+/* STBinding is the structure for a node in SymTable that contains a
+key-value pair and the next binding that follows it to form a linked
+list */
 struct STBinding 
 {
+    /* pointer towards the key */
     char *pcKey;
+    /* pointer towards the value */
     void *pvValue;
+    /* next node in the linked list */
     struct STBinding *psNextNode;
 };
 
+/* SymTable is the structure for a SymTable that contains its size and
+a pointer to the first binding in the linked list */
 struct SymTable
 {
+    /* number of bindings in the SymTable */
     size_t size;
+    /* first node in the linked list */
     struct STBinding *first;
 };
 
@@ -38,6 +53,7 @@ void SymTable_free(SymTable_T oSymTable) {
     psCurrentNode = psNextNode)
     {
       psNextNode = psCurrentNode->psNextNode;
+      free(psCurrentNode->pcKey);
       free(psCurrentNode);
     }
 
@@ -50,14 +66,11 @@ size_t SymTable_getLength(SymTable_T oSymTable) {
 
 int SymTable_put(SymTable_T oSymTable, const char *pcKey, 
 const void *pvValue) {
-    struct STBinding *psNewNode;
-    struct STBinding *psCurrentNode;
+    struct STBinding *psNewNode, *psCurrentNode;
     char* keyCopy;
 
+    assert(pcKey != NULL);
     assert(oSymTable != NULL);
-
-    keyCopy = malloc(sizeof(char) * strlen(pcKey) + 1);
-    keyCopy = strcpy(keyCopy, pcKey);
 
     for (psCurrentNode = oSymTable->first; 
     psCurrentNode != NULL; 
@@ -66,6 +79,12 @@ const void *pvValue) {
             return 0;
         }
     }
+
+
+    keyCopy = malloc(sizeof(char) * (strlen(pcKey) + 1));
+    if (keyCopy == NULL) return 0;
+
+    keyCopy = strcpy(keyCopy, pcKey);
 
     psNewNode = (struct STBinding*)malloc(sizeof(struct STBinding));
     if (psNewNode == NULL) return 0;
@@ -85,6 +104,7 @@ const void *pvValue) {
     struct STBinding *psCurrentNode;
     void *tempValue;
 
+    assert(pcKey != NULL);
     assert(oSymTable != NULL);
 
     for (psCurrentNode = oSymTable->first; 
@@ -103,6 +123,7 @@ const void *pvValue) {
 int SymTable_contains(SymTable_T oSymTable, const char *pcKey) {
     struct STBinding *psCurrentNode;
 
+    assert(pcKey != NULL);
     assert(oSymTable != NULL);
 
     for (psCurrentNode = oSymTable->first; 
@@ -119,6 +140,7 @@ int SymTable_contains(SymTable_T oSymTable, const char *pcKey) {
 void *SymTable_get(SymTable_T oSymTable, const char *pcKey) {
     struct STBinding *psCurrentNode;
 
+    assert(pcKey != NULL);
     assert(oSymTable != NULL);
 
     for (psCurrentNode = oSymTable->first; 
@@ -137,6 +159,7 @@ void *SymTable_remove(SymTable_T oSymTable, const char *pcKey) {
     struct STBinding *psPrevious;
     void *pvValue;
 
+    assert(pcKey != NULL);
     assert(oSymTable != NULL);
 
     psCurrentNode = oSymTable->first;
@@ -145,6 +168,7 @@ void *SymTable_remove(SymTable_T oSymTable, const char *pcKey) {
     if (!strcmp(psCurrentNode->pcKey, pcKey)) {
         pvValue = psCurrentNode->pvValue;
         oSymTable->first = oSymTable->first->psNextNode;
+        free(psCurrentNode->pcKey);
         free(psCurrentNode);
         oSymTable->size--;
         return pvValue;
@@ -158,6 +182,7 @@ void *SymTable_remove(SymTable_T oSymTable, const char *pcKey) {
         if (!strcmp(psCurrentNode->pcKey, pcKey)) {
             pvValue = psCurrentNode->pvValue;
             psPrevious->psNextNode = psCurrentNode->psNextNode;
+            free(psCurrentNode->pcKey);
             free(psCurrentNode);
             oSymTable->size--;
             return pvValue;
@@ -173,6 +198,8 @@ void SymTable_map(SymTable_T oSymTable,
     void (*pfApply)(const char *pcKey, void *pvValue, void *pvExtra),
     const void *pvExtra) {
         struct STBinding *psCurrentNode;
+
+        assert(pfApply != NULL);
 
         for (psCurrentNode = oSymTable->first; 
         psCurrentNode != NULL; 
