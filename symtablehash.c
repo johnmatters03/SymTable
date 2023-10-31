@@ -3,7 +3,7 @@
 #include <string.h>
 #include "symtable.h"
 
-static const int BUCKETSIZE[8] = {509, 1021, 2039, 4093, 8191,
+static const size_t BUCKETSIZE[8] = {509, 1021, 2039, 4093, 8191,
 16381, 32749, 65521};
 
 struct STBinding 
@@ -16,8 +16,8 @@ struct STBinding
 struct SymTable
 {
    size_t size;
-   int iBuckets;
-   struct STBinding *buckets[1];
+   size_t iBuckets;
+   struct STBinding **buckets;
 };
 
 /* Return a hash code for pcKey that is between 0 and uBucketCount-1,
@@ -42,53 +42,48 @@ static SymTable_T SymTable_resize(SymTable_T oSymTable)
    struct STBinding *psCurrentNode;
    struct STBinding *psTempNode;
    struct STBinding **buckets;
-   void *pvValue;
-   int i;
-   int out;
-   int newSize;
+   size_t i;
+   size_t oldSize;
+   int newHash;
+
+   oldSize = oSymTable->iBuckets;
 
    for (i = 1; i < 8; i++) {
-      if (oSymTable->iBuckets < BUCKETSIZE[i]) {
-         newSize = BUCKETSIZE[i];
+      if (oSymTable->iBuckets < BUCKETSIZE[i]) 
+      {
+         oSymTable->iBuckets = BUCKETSIZE[i];
          break;
       }
    }
 
-   assert(oSymTable->iBuckets != BUCKETSIZE[7]);
-
-   buckets = malloc(sizeof(char*) * oSymTable->iBuckets);
+   buckets = (struct STBinding **)malloc(sizeof(struct STBinding*) * oSymTable->iBuckets);
 
    for (i = 0; i < oSymTable->iBuckets; i++) {
-      buckets[i] = oSymTable->buckets[i];
+      buckets[i] = NULL;
    }
 
-   oSymTable = realloc(oSymTable, sizeof(struct SymTable) + 
-   newSize * sizeof(char*));
-
-   for (i = 0; i < oSymTable->iBuckets; i++) {
-      psCurrentNode = buckets[i];
-      while (psCurrentNode != NULL) {
+   for (i = 0; i < oldSize; i++) {
+      for (psCurrentNode = oSymTable->buckets[i]; psCurrentNode != NULL; psCurrentNode = psTempNode) {
+         newHash = SymTable_hash(psCurrentNode->pcKey, oSymTable->iBuckets);
          psTempNode = psCurrentNode->psNextNode;
-         pvValue = SymTable_remove(oSymTable, psCurrentNode->pcKey);
-         out = SymTable_put(oSymTable, psTempNode->pcKey, pvValue);
-         assert(out == 1);
 
-         psCurrentNode = psTempNode;
+         psCurrentNode->psNextNode = buckets[newHash];
+         buckets[newHash] = psCurrentNode;
       }
    }
 
-   oSymTable->iBuckets = newSize;
-
-   free(buckets);
+   free(oSymTable->buckets);
+   oSymTable->buckets = buckets;
 
    return oSymTable;
 }
 
 SymTable_T SymTable_new(void) {
    SymTable_T oSymTable;
-   int i;
-   oSymTable = (SymTable_T)malloc(sizeof(struct SymTable) + 
-   BUCKETSIZE[0] * sizeof(char*));
+   size_t i;
+
+   oSymTable = (SymTable_T)malloc(sizeof(struct SymTable));
+   oSymTable->buckets = (struct STBinding **)malloc(BUCKETSIZE[0] * sizeof(struct STBinding*));
    if (oSymTable == NULL) return NULL;
 
    oSymTable->iBuckets = BUCKETSIZE[0];
@@ -103,7 +98,7 @@ SymTable_T SymTable_new(void) {
 void SymTable_free(SymTable_T oSymTable) {
    struct STBinding *psCurrentNode;
    struct STBinding *psNextNode;
-   int i;
+   size_t i;
 
    for (i = 0; i < oSymTable->iBuckets; i++) {
       psCurrentNode = oSymTable->buckets[i];
@@ -129,8 +124,9 @@ const void *pvValue) {
    char* keyCopy;
    
    if (oSymTable->size == oSymTable->iBuckets) 
-   oSymTable = SymTable_resize(oSymTable);
-
+   {
+      oSymTable = SymTable_resize(oSymTable);
+   }
    index = SymTable_hash(pcKey, oSymTable->iBuckets);
 
    for (psCurrentNode = oSymTable->buckets[index];
@@ -141,7 +137,7 @@ const void *pvValue) {
       }
    }
 
-   keyCopy = malloc(sizeof(char) * strlen(pcKey));
+   keyCopy = malloc(sizeof(char) * (strlen(pcKey) + 1));
    keyCopy = strcpy(keyCopy, pcKey);
 
    psNewNode = (struct STBinding*)malloc(sizeof(struct STBinding));
@@ -262,7 +258,7 @@ void *SymTable_remove(SymTable_T oSymTable, const char *pcKey) {
 void SymTable_map(SymTable_T oSymTable,
    void (*pfApply)(const char *pcKey, void *pvValue, void *pvExtra),
    const void *pvExtra) {
-      int i;
+      size_t i;
       struct STBinding *psCurrentNode;
 
       for (i = 0; i < oSymTable->iBuckets; i++) {
