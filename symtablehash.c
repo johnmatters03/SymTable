@@ -37,7 +37,7 @@ struct SymTable
    /* the number of buckets */
    size_t iBuckets;
    /* the index of threshold */
-   int bucketCount;
+   size_t bucketCount;
    /* a pointer towards the buckets array with the separate chaining
    linked lists */
    struct STBinding **buckets;
@@ -64,12 +64,9 @@ size threshold and rehashes all bindings, returns a
 pointer to the expanded SymTable */
 static SymTable_T SymTable_resize(SymTable_T oSymTable)
 {
-   struct STBinding *psCurrentNode;
-   struct STBinding *psTempNode;
+   struct STBinding *psCurrentNode, *psTempNode;
    struct STBinding **buckets;
-   size_t i;
-   size_t oldCount;
-   size_t newHash;
+   size_t i, oldCount, newHash;
 
    oldCount = oSymTable->bucketCount;
 
@@ -78,14 +75,10 @@ static SymTable_T SymTable_resize(SymTable_T oSymTable)
    oSymTable->bucketCount++;
    oSymTable->iBuckets = BUCKETSIZE[oSymTable->bucketCount];
 
-   buckets = (struct STBinding **)malloc(sizeof(struct STBinding*) * 
-   oSymTable->iBuckets);
+   buckets = (struct STBinding **)calloc(oSymTable->iBuckets, 
+   sizeof(struct STBinding*));
 
    if (buckets == NULL) return NULL;
-
-   for (i = 0; i < oSymTable->iBuckets; i++) {
-      buckets[i] = NULL;
-   }
 
    for (i = 0; i < BUCKETSIZE[oldCount]; i++) {
       for (psCurrentNode = oSymTable->buckets[i]; 
@@ -181,6 +174,8 @@ const void *pvValue) {
    }
 
    keyCopy = malloc(sizeof(char) * (strlen(pcKey) + 1));
+   if (keyCopy == NULL) return 0;
+
    keyCopy = strcpy(keyCopy, pcKey);
 
    psNewNode = (struct STBinding*)malloc(sizeof(struct STBinding));
@@ -317,7 +312,7 @@ void SymTable_map(SymTable_T oSymTable,
          for (psCurrentNode = oSymTable->buckets[i]; 
          psCurrentNode != NULL; 
          psCurrentNode = psCurrentNode->psNextNode) {
-            pfApply(psCurrentNode->pcKey, 
+            (*pfApply)(psCurrentNode->pcKey, 
             (void*)psCurrentNode->pvValue,
             (void*)pvExtra);
         }

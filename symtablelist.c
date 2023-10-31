@@ -43,8 +43,7 @@ SymTable_T SymTable_new(void) {
 }
 
 void SymTable_free(SymTable_T oSymTable) {
-    struct STBinding *psCurrentNode;
-    struct STBinding *psNextNode;
+    struct STBinding *psCurrentNode, *psNextNode;
 
     assert(oSymTable != NULL);
 
@@ -155,8 +154,7 @@ void *SymTable_get(SymTable_T oSymTable, const char *pcKey) {
 }
 
 void *SymTable_remove(SymTable_T oSymTable, const char *pcKey) {
-    struct STBinding *psCurrentNode;
-    struct STBinding *psPrevious;
+    struct STBinding *psCurrentNode, *psPrevious;
     void *pvValue;
 
     assert(pcKey != NULL);
@@ -204,7 +202,7 @@ void SymTable_map(SymTable_T oSymTable,
         for (psCurrentNode = oSymTable->first; 
         psCurrentNode != NULL; 
         psCurrentNode = psCurrentNode->psNextNode) {
-            pfApply(psCurrentNode->pcKey, 
+            (*pfApply)(psCurrentNode->pcKey, 
             (void*)psCurrentNode->pvValue,
             (void*)pvExtra);
         }
